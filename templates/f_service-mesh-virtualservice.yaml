@@ -1,0 +1,33 @@
+{{- if has "servicemesh" .Values.feature }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "app.fullname" . }}-vs
+spec:
+  gateways:
+    - service-mesh/octo-gateway
+  hosts:
+    - "octo-service-mesh.apps.ocp.ocp-gm.de"
+  http:
+    - name: "hello route"
+      route:
+        - destination:
+            host: {{ .Release.Name }}-service
+            subset: dev
+            port:
+              number: 8080
+    - name: "grpc route"
+      match:
+        - port: 9000
+      route:
+        - destination:
+            host: {{ .Release.Name }}-service
+            subset: dev
+            port:
+              number: 9000
+      # fault:
+      #   abort:
+      #     percentage:
+      #       value: 100
+      #     httpStatus: 415
+{{- end }}

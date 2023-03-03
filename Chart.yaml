@@ -1,0 +1,12 @@
+apiVersion: v2
+name: octo-happiness
+description: A helm chart for docker builds of quarkus quickstarts
+home: https://github.com/gmodzelewski/octo-happiness
+type: application
+version: 1.0.0
+appVersion: "v1.0.0-SNAPSHOT"
+sources:
+    - https://github.com/gmodzelewski/octo-happiness
+maintainers:
+    - name: Georg Modzelewski
+      email: georg@redhat.com

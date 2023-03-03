@@ -1,0 +1,33 @@
+{{- if has "servicemesh" .Values.feature }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: octo-gateway
+  namespace: service-mesh
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+    - hosts:
+        - "octo-service-mesh.apps.ocp.ocp-gm.de"
+      port:
+        name: https
+        number: 9443
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: {{ include "app.fullname" . }}-certificate
+    - hosts:
+        - "octo-service-mesh.apps.ocp.ocp-gm.de"
+      port:
+        name: http
+        protocol: HTTP
+      tls:
+        httpsRedirect: true
+    - hosts:
+        - "octo-service-mesh.apps.ocp.ocp-gm.de"
+      port:
+        number: 9000
+        name: grpc
+        protocol: GRPC
+{{- end }}

@@ -1,0 +1,19 @@
+deployment:
+  replicas: 1
+
+config:
+  greeting: 'Hello World.'
+
+design: grpc
+# mqtt-producer
+# mqtt-processor
+# amqp
+# rust
+# grpc
+
+feature:
+  # - servicemesh
+  - observability
+  # - observabilityClusterMonitoring
+
+healthChecksDisabled: false
