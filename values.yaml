@@ -5,11 +5,7 @@ config:
   greeting: 'Hello World.'
 
 design: grpc
-# mqtt-producer
-# mqtt-processor
-# amqp
-# rust
-# grpc
+# must be one of: grpc, mqtt-producer, mqtt-processor, amqp, rust 
 
 feature:
   # - servicemesh

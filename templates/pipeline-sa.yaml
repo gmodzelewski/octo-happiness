@@ -9,7 +9,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "app.fullname" . }}-pipline-rolebinding1
+  name: {{ include "app.fullname" . }}-pipline-rolebinding0
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -21,7 +21,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "app.fullname" . }}-pipeline-rolebinding0
+  name: {{ include "app.fullname" . }}-pipeline-rolebinding1
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

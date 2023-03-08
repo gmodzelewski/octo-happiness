@@ -20,8 +20,7 @@ spec:
         sidecar.istio.io/inject: "true"
         {{- end }}
     spec:
-      serviceAccountName: {{ include "app.fullname" . }}-sa
-      serviceAccount: {{ include "app.fullname" . }}-sa
+      serviceAccountName: {{ .Release.Name }}-sa
       containers:
         - image: "{{ include "app.fullname" . }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: IfNotPresent
@@ -70,3 +69,15 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - {{ include "app.fullname" . }}
+      from:
+        kind: ImageStreamTag
+        name: "{{ include "app.fullname" . }}:{{ .Chart.AppVersion }}"
+    type: ImageChange
+  strategy:
+    type: Rolling

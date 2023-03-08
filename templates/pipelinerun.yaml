@@ -2,9 +2,6 @@ apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
   name: {{ include "app.fullname" . }}-run-{{ .Release.Revision }}
-  annotation:
-    operator.tekton.dev/prune.resources: "taskrun, pipelinerun"
-    operator.tekton.dev/prune.keep-since: 7200
   labels:
     tekton.dev/pipeline: build-maven
     app.kubernetes.io/name: {{ include "app.fullname" . }}
@@ -12,7 +9,7 @@ metadata:
 spec:
   pipelineRef:
     name: {{ include "app.fullname" . }}-build
-  # serviceAccountName: {{ include "app.fullname" . }}-pipeline-sa
+  serviceAccountName: {{ include "app.fullname" . }}-pipeline-sa
   timeout: 1h0m0s
   params:
     - name: appversion
