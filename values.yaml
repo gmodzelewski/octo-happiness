@@ -4,7 +4,7 @@ deployment:
 config:
   greeting: 'Hello World.'
 
-design: grpc
+design: mqtt-producer
 # must be one of: grpc, mqtt-producer, mqtt-processor, amqp, rust 
 
 feature:
@@ -13,3 +13,5 @@ feature:
   # - observabilityClusterMonitoring
 
 healthChecksDisabled: false
+
+rhacsDisabled: false # set this to true if you do not have rhacs installed and did not run the RHACS-generate-ci-api-token.yaml in the root directory

@@ -31,7 +31,11 @@ app.openshift.io/runtime-version: {{ .Chart.AppVersion }}
 {{- end -}}
 
 {{- define "app.srcGit" }}
-{{- printf "https://github.com/gmodzelewski/octo-happiness-%s.git" .Values.design | trunc 63 | trimSuffix "-" -}}
+{{- printf "https://github.com/gmodzelewski/octo-happiness-%s.git" .Values.design -}}
+{{- end -}}
+
+{{- define "app.helmGit" }}
+{{- printf "https://github.com/gmodzelewski/octo-happiness.git" -}}
 {{- end -}}
 
 {{- define "app.defaultAnnotations" }}

@@ -13,8 +13,14 @@ spec:
   - name: https-main
     port: 8443
     targetPort: http-main
+  {{- if eq .Values.design "mqtt-processor" }}
+  - name: artemis
+    port: 5672
+    targetPort: artemis
+  {{- else if eq .Values.design "grpc" }}
   - name: grpc
     port: 9000
     targetPort: grpc
+  {{- end }}
   selector:
     {{- include "app.matchLabels" . | indent 4 }}

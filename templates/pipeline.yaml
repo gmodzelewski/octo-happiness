@@ -3,36 +3,10 @@ kind: Pipeline
 metadata:
   name: {{ include "app.fullname" . }}-build
 spec:
-  finally:
-    - name: buildah
-      params:
-        - name: IMAGE
-          value: >-
-            image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}:$(params.appversion)
-        - name: BUILDER_IMAGE
-          value: >-
-            registry.redhat.io/rhel8/buildah@sha256:0a86ecbdfbe86e9d225b7fe4b090a0dd6d323f8afdfdf2bd933ff223ddb53320
-        - name: STORAGE_DRIVER
-          value: vfs
-        - name: DOCKERFILE
-          value: Dockerfile
-        - name: CONTEXT
-          value: .
-        - name: TLSVERIFY
-          value: 'false'
-        - name: FORMAT
-          value: oci
-        - name: BUILD_EXTRA_ARGS
-          value: ''
-        - name: PUSH_EXTRA_ARGS
-          value: ''
-      taskRef:
-        kind: ClusterTask
-        name: buildah
-      workspaces:
-        - name: source
-          workspace: source
   tasks:
+    ##------------------------------------------------------------------
+    # Git clone task
+    ##------------------------------------------------------------------
     - name: git-clone
       params:
         - name: url
@@ -60,6 +34,9 @@ spec:
       workspaces:
         - name: output
           workspace: source
+    ##------------------------------------------------------------------
+    # Set app version in java build
+    ##------------------------------------------------------------------
     - name: set-version
       params:
         - name: MAVEN_IMAGE
@@ -83,6 +60,9 @@ spec:
           workspace: source
         - name: maven-settings
           workspace: maven-settings
+    ##------------------------------------------------------------------
+    # Create application artifact
+    ##------------------------------------------------------------------
     - name: package
       params:
         - name: MAVEN_IMAGE
@@ -105,14 +85,188 @@ spec:
           workspace: source
         - name: maven-settings
           workspace: maven-settings
+    ##------------------------------------------------------------------
+    # Deploy via Dockerfile
+    ##------------------------------------------------------------------
+    # - name: kaniko
+    #   params:
+    #     - name: IMAGE
+    #       value: >-
+    #         image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}:$(params.appversion)
+    #     - name: DOCKERFILE
+    #       value: ./Dockerfile
+    #     - name: CONTEXT
+    #       value: ./
+    #     - name: EXTRA_ARGS
+    #       value: []
+    #     - name: BUILDER_IMAGE
+    #       value: >-
+    #         gcr.io/kaniko-project/executor:v1.5.1@sha256:c6166717f7fe0b7da44908c986137ecfeab21f31ec3992f6e128fff8a94be8a5
+    #   runAfter:
+    #     - package
+    #   taskRef:
+    #     kind: Task
+    #     name: kaniko
+    #   workspaces:
+    #     - name: source
+    #       workspace: source
+    - name: buildah
+      params:
+        - name: IMAGE
+          value: >-
+            image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}:$(params.appversion)
+        - name: BUILDER_IMAGE
+          value: >-
+            quay.io/buildah/stable:latest
+        - name: STORAGE_DRIVER
+          value: vfs
+        - name: DOCKERFILE
+          value: Dockerfile
+        - name: CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'false'
+        - name: FORMAT
+          value: oci
+        - name: BUILD_EXTRA_ARGS
+          value: ''
+        - name: PUSH_EXTRA_ARGS
+          value: ''
+      taskRef:
+        kind: ClusterTask
+        name: buildah
+      runAfter:
+        - package
+        - kube-linter
+        - image-check
+        - image-scan
+      workspaces:
+        - name: source
+          workspace: source
+    ##------------------------------------------------------------------
+    # rhacs checks
+    ##------------------------------------------------------------------
+    - name: git-clone-helm
+      params:
+        - name: url
+          value: "{{ include "app.helmGit" . }}"
+        - name: revision
+          value: main
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:cadf614a6044ee37397de3abe7674827ecab225e7fac9fb123eff5473e2c4003
+        - name: userHome
+          value: /tekton/home
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source-helm
+    - name: kube-linter
+      runAfter:
+      - git-clone-helm
+      taskRef:
+        name: kube-linter
+      workspaces:
+        - name: source
+          workspace: source-helm
+      params:
+        - name: manifest
+          value: .
+        - name: default_option
+          value: do-not-auto-add-defaults # or add-all-built-in
+        - name: includelist
+          value: "no-extensions-v1beta,default-service-account,no-readiness-probe"
+    - name: image-scan
+      taskRef:
+        name: rhacs-image-scan
+        kind: Task
+      params:
+      - name: image
+        value: image-registry.openshift-image-registry.svc:5000/octo-happiness/producer-octo-happiness@sha256:7c87cc9db2f9cbe536986c8863235557a2568f60e331ae3d53b60bedbea17328
+      - name: rox_api_token
+        value: {{ include "app.fullname" . }}-pipeline-config
+      - name: rox_central_endpoint
+        value: {{ include "app.fullname" . }}-pipeline-config
+      - name: output_format
+        value: json
+      - name: insecure-skip-tls-verify
+        value: true
+      # runAfter:
+        # - kaniko
+        # - buildah
+    - name: image-check
+      taskRef:
+        name: rhacs-image-check
+        kind: Task
+      params:
+      - name: image
+        value: image-registry.openshift-image-registry.svc:5000/octo-happiness/producer-octo-happiness@sha256:7c87cc9db2f9cbe536986c8863235557a2568f60e331ae3d53b60bedbea17328
+      - name: rox_api_token
+        value: {{ include "app.fullname" . }}-pipeline-config
+      - name: rox_central_endpoint
+        value: {{ include "app.fullname" . }}-pipeline-config
+      - name: insecure-skip-tls-verify
+        value: true
+      # runAfter:
+        # - kaniko
+        # - buildah
+  ##------------------------------------------------------------------
+  # notify on slack
+  ##------------------------------------------------------------------
+  finally:
+    - name: send-to-channel-slack
+      params:
+        - name: token-secret
+          value: $(params.slack_token)
+        - name: channel
+          value: B04T6HA9FEY
+        - name: message
+          value: "ja kacke"
+      when:
+        - input: $(tasks.buildah.status)
+          operator: in
+          values: ["Failed"]
+        - input: $(tasks.image-check.status)
+          operator: in
+          values: ["Failed"]
+        - input: $(tasks.image-scan.status)
+          operator: in
+          values: ["Failed"]
+        - input: $(tasks.kube-linter.status)
+          operator: in
+          values: ["Failed"]
+      taskRef:
+        name: send-to-channel-slack
+  ##------------------------------------------------------------------
+  # Workspace definitions
+  ##------------------------------------------------------------------
   workspaces:
     - name: source
       optional: false
+    - name: source-helm
+      optional: false
     - name: maven-settings
       optional: false
+  ##------------------------------------------------------------------
+  # Parameters definitions
+  ##------------------------------------------------------------------
   params:
     - default: 1.0.0-SNAPSHOT
       description: The version of the application
       name: appversion
+      type: string
+    - name: slack_token
       type: string
   resources: []

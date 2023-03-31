@@ -29,13 +29,25 @@ spec:
             - name: http-main
               containerPort: 8080
               protocol: TCP
+            {{- if eq .Values.design "mqtt-processor" }}
+            - name: artemis
+              containerPort: 5672
+              protocol: TCP
+            {{- else if eq .Values.design "grpc" }}
             - name: grpc
               containerPort: 9000
               protocol: TCP
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "app.fullname" . }}-config
-          resources: {}
+          resources: 
+            requests:
+              cpu: "10m"
+              memory: 20Mi
+            limits:
+              cpu: "200m"
+              memory: 1Gi
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
