@@ -110,7 +110,7 @@ spec:
     #   workspaces:
     #     - name: source
     #       workspace: source
-    - name: buildah
+    - name: build-image
       params:
         - name: IMAGE
           value: >-
@@ -138,8 +138,6 @@ spec:
       runAfter:
         - package
         - kube-linter
-        - image-check
-        - image-scan
       workspaces:
         - name: source
           workspace: source
@@ -194,61 +192,44 @@ spec:
         kind: Task
       params:
       - name: image
-        value: image-registry.openshift-image-registry.svc:5000/octo-happiness/producer-octo-happiness@sha256:7c87cc9db2f9cbe536986c8863235557a2568f60e331ae3d53b60bedbea17328
+        value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}@$(tasks.build-image.results.IMAGE_DIGEST)"
       - name: rox_api_token
         value: {{ include "app.fullname" . }}-pipeline-config
       - name: rox_central_endpoint
         value: {{ include "app.fullname" . }}-pipeline-config
       - name: output_format
-        value: json
+        value: table
       - name: insecure-skip-tls-verify
         value: true
-      # runAfter:
-        # - kaniko
-        # - buildah
+      runAfter:
+        - build-image
     - name: image-check
       taskRef:
         name: rhacs-image-check
         kind: Task
       params:
       - name: image
-        value: image-registry.openshift-image-registry.svc:5000/octo-happiness/producer-octo-happiness@sha256:7c87cc9db2f9cbe536986c8863235557a2568f60e331ae3d53b60bedbea17328
+        value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}@$(tasks.build-image.results.IMAGE_DIGEST)"
       - name: rox_api_token
         value: {{ include "app.fullname" . }}-pipeline-config
       - name: rox_central_endpoint
         value: {{ include "app.fullname" . }}-pipeline-config
       - name: insecure-skip-tls-verify
         value: true
-      # runAfter:
-        # - kaniko
-        # - buildah
+      runAfter:
+        - build-image
   ##------------------------------------------------------------------
   # notify on slack
   ##------------------------------------------------------------------
   finally:
-    - name: send-to-channel-slack
+    - name: notify-slack-test
       params:
-        - name: token-secret
-          value: $(params.slack_token)
-        - name: channel
-          value: B04T6HA9FEY
+        - name: webhook-secret
+          value: {{ include "app.fullname" . }}-slack-webhook
         - name: message
-          value: "ja kacke"
-      when:
-        - input: $(tasks.buildah.status)
-          operator: in
-          values: ["Failed"]
-        - input: $(tasks.image-check.status)
-          operator: in
-          values: ["Failed"]
-        - input: $(tasks.image-scan.status)
-          operator: in
-          values: ["Failed"]
-        - input: $(tasks.kube-linter.status)
-          operator: in
-          values: ["Failed"]
+          value: "Build of {{ include "app.fullname" . }} completed."
       taskRef:
-        name: send-to-channel-slack
+        name: send-to-webhook-slack
   ##------------------------------------------------------------------
   # Workspace definitions
   ##------------------------------------------------------------------
@@ -266,7 +247,5 @@ spec:
     - default: 1.0.0-SNAPSHOT
       description: The version of the application
       name: appversion
-      type: string
-    - name: slack_token
       type: string
   resources: []

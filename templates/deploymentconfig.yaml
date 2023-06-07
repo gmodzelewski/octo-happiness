@@ -41,6 +41,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "app.fullname" . }}-config
+            - secretRef:
+                name: {{ include "app.fullname" . }}-broker-info
           resources: 
             requests:
               cpu: "10m"
@@ -65,7 +67,7 @@ spec:
               port: 8080
               scheme: HTTP
             timeoutSeconds: 1
-            periodSeconds: 10
+            periodSeconds: 50
             successThreshold: 1
             failureThreshold: 3
           livenessProbe:
@@ -74,7 +76,7 @@ spec:
               port: 8080
               scheme: HTTP
             timeoutSeconds: 2
-            periodSeconds: 10
+            periodSeconds: 50
             successThreshold: 1
             failureThreshold: 3
           {{- end }}

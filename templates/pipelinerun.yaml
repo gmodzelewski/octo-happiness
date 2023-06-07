@@ -14,8 +14,6 @@ spec:
   params:
     - name: appversion
       value: {{ .Chart.AppVersion }}
-    - name: slack_token
-      value: {{ include "app.fullname" . }}-pipeline-config
   workspaces:
     - name: source
       persistentVolumeClaim:

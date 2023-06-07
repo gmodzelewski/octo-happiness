@@ -1,0 +1,62 @@
+{{- if eq .Values.design "mqtt-producer" }}
+apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ""
+items:
+- apiVersion: broker.amq.io/v1beta1
+  kind: ActiveMQArtemis
+  metadata:
+    name: ex-aao
+  spec:
+    acceptors:
+      - name: core-acceptor
+        port: 61616
+        protocols: core
+        sslEnabled: false
+        expose: true
+      - name: amqp-acceptor
+        port: 5672
+        protocols: amqp
+        sslEnabled: false
+        expose: true
+      - name: mqtt-acceptor
+        port: 1883
+        protocols: mqtt
+        sslEnabled: false
+        expose: true
+    console:
+      expose: true
+    deploymentPlan:
+      storage:
+        size: 100Gi
+      image: placeholder
+      jolokiaAgentEnabled: false
+      journalType: nio
+      managementRBACEnabled: true
+      messageMigration: false
+      requireLogin: false
+      persistenceEnabled: true
+      enableMetricsPlugin: true
+      size: 2
+      clustered: true
+    adminUser: admin
+    adminPassword: admin
+- apiVersion: monitoring.coreos.com/v1
+  kind: ServiceMonitor
+  metadata:
+    labels:
+      application: ex-aao
+      component: service-monitor
+    name: amq-broker
+  spec:
+    endpoints:
+    - interval: 30s
+      path: /metrics
+      port: wconsj-0
+      scheme: http
+    selector:
+      matchLabels:
+        ActiveMQArtemis: ex-aao
+        application: ex-aao-app
+{{- end }}
