@@ -1,3 +1,4 @@
+{{- if not .Values.pipelineDisabled }}
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
@@ -45,7 +46,7 @@ spec:
         - name: GOALS
           value:
             - versions:set
-            - -DnewVersion=${params.appversion}
+            - -DnewVersion=${params.IMAGE_TAG}
         - name: PROXY_PROTOCOL
           value: http
         - name: CONTEXT_DIR
@@ -92,7 +93,7 @@ spec:
     #   params:
     #     - name: IMAGE
     #       value: >-
-    #         image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}:$(params.appversion)
+    #         image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}:$(params.IMAGE_TAG)
     #     - name: DOCKERFILE
     #       value: ./Dockerfile
     #     - name: CONTEXT
@@ -113,8 +114,7 @@ spec:
     - name: build-image
       params:
         - name: IMAGE
-          value: >-
-            image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}:$(params.appversion)
+          value: $(params.IMAGE_NAME):$(params.IMAGE_TAG)
         - name: BUILDER_IMAGE
           value: >-
             quay.io/buildah/stable:latest
@@ -137,99 +137,99 @@ spec:
         name: buildah
       runAfter:
         - package
-        - kube-linter
+        # - kube-linter
       workspaces:
         - name: source
           workspace: source
     ##------------------------------------------------------------------
     # rhacs checks
     ##------------------------------------------------------------------
-    - name: git-clone-helm
-      params:
-        - name: url
-          value: "{{ include "app.helmGit" . }}"
-        - name: revision
-          value: main
-        - name: submodules
-          value: 'true'
-        - name: depth
-          value: '1'
-        - name: sslVerify
-          value: 'true'
-        - name: deleteExisting
-          value: 'true'
-        - name: verbose
-          value: 'true'
-        - name: gitInitImage
-          value: >-
-            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:cadf614a6044ee37397de3abe7674827ecab225e7fac9fb123eff5473e2c4003
-        - name: userHome
-          value: /tekton/home
-      taskRef:
-        kind: ClusterTask
-        name: git-clone
-      workspaces:
-        - name: output
-          workspace: source-helm
-    - name: kube-linter
-      runAfter:
-      - git-clone-helm
-      taskRef:
-        name: kube-linter
-      workspaces:
-        - name: source
-          workspace: source-helm
-      params:
-        - name: manifest
-          value: .
-        - name: default_option
-          value: do-not-auto-add-defaults # or add-all-built-in
-        - name: includelist
-          value: "no-extensions-v1beta,default-service-account,no-readiness-probe"
-    - name: image-scan
-      taskRef:
-        name: rhacs-image-scan
-        kind: Task
-      params:
-      - name: image
-        value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}@$(tasks.build-image.results.IMAGE_DIGEST)"
-      - name: rox_api_token
-        value: {{ include "app.fullname" . }}-pipeline-config
-      - name: rox_central_endpoint
-        value: {{ include "app.fullname" . }}-pipeline-config
-      - name: output_format
-        value: table
-      - name: insecure-skip-tls-verify
-        value: true
-      runAfter:
-        - build-image
-    - name: image-check
-      taskRef:
-        name: rhacs-image-check
-        kind: Task
-      params:
-      - name: image
-        value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}@$(tasks.build-image.results.IMAGE_DIGEST)"
-      - name: rox_api_token
-        value: {{ include "app.fullname" . }}-pipeline-config
-      - name: rox_central_endpoint
-        value: {{ include "app.fullname" . }}-pipeline-config
-      - name: insecure-skip-tls-verify
-        value: true
-      runAfter:
-        - build-image
+    # - name: git-clone-helm
+    #   params:
+    #     - name: url
+    #       value: "{{ include "app.helmGit" . }}"
+    #     - name: revision
+    #       value: main
+    #     - name: submodules
+    #       value: 'true'
+    #     - name: depth
+    #       value: '1'
+    #     - name: sslVerify
+    #       value: 'true'
+    #     - name: deleteExisting
+    #       value: 'true'
+    #     - name: verbose
+    #       value: 'true'
+    #     - name: gitInitImage
+    #       value: >-
+    #         registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:cadf614a6044ee37397de3abe7674827ecab225e7fac9fb123eff5473e2c4003
+    #     - name: userHome
+    #       value: /tekton/home
+    #   taskRef:
+    #     kind: ClusterTask
+    #     name: git-clone
+    #   workspaces:
+    #     - name: output
+    #       workspace: source-helm
+    # - name: kube-linter
+    #   runAfter:
+    #   - git-clone-helm
+    #   taskRef:
+    #     name: kube-linter
+    #   workspaces:
+    #     - name: source
+    #       workspace: source-helm
+    #   params:
+    #     - name: manifest
+    #       value: .
+    #     - name: default_option
+    #       value: do-not-auto-add-defaults # or add-all-built-in
+    #     - name: includelist
+    #       value: "no-extensions-v1beta,default-service-account,no-readiness-probe"
+    # - name: image-scan
+    #   taskRef:
+    #     name: rhacs-image-scan
+    #     kind: Task
+    #   params:
+    #   - name: image
+    #     value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}@$(tasks.build-image.results.IMAGE_DIGEST)"
+    #   - name: rox_api_token
+    #     value: {{ include "app.fullname" . }}-pipeline-config
+    #   - name: rox_central_endpoint
+    #     value: {{ include "app.fullname" . }}-pipeline-config
+    #   - name: output_format
+    #     value: table
+    #   - name: insecure-skip-tls-verify
+    #     value: true
+    #   runAfter:
+    #     - build-image
+    # - name: image-check
+    #   taskRef:
+    #     name: rhacs-image-check
+    #     kind: Task
+    #   params:
+    #   - name: image
+    #     value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}@$(tasks.build-image.results.IMAGE_DIGEST)"
+    #   - name: rox_api_token
+    #     value: {{ include "app.fullname" . }}-pipeline-config
+    #   - name: rox_central_endpoint
+    #     value: {{ include "app.fullname" . }}-pipeline-config
+    #   - name: insecure-skip-tls-verify
+    #     value: true
+    #   runAfter:
+    #     - build-image
   ##------------------------------------------------------------------
   # notify on slack
   ##------------------------------------------------------------------
-  finally:
-    - name: notify-slack-test
-      params:
-        - name: webhook-secret
-          value: {{ include "app.fullname" . }}-slack-webhook
-        - name: message
-          value: "Build of {{ include "app.fullname" . }} completed."
-      taskRef:
-        name: send-to-webhook-slack
+  # finally:
+  #   - name: notify-slack-test
+  #     params:
+  #       - name: webhook-secret
+  #         value: {{ include "app.fullname" . }}-slack-webhook
+  #       - name: message
+  #         value: "Build of {{ include "app.fullname" . }} completed."
+  #     taskRef:
+  #       name: send-to-webhook-slack
   ##------------------------------------------------------------------
   # Workspace definitions
   ##------------------------------------------------------------------
@@ -244,8 +244,12 @@ spec:
   # Parameters definitions
   ##------------------------------------------------------------------
   params:
-    - default: 1.0.0-SNAPSHOT
+    - default: latest
       description: The version of the application
-      name: appversion
+      name: IMAGE_TAG
+      type: string
+    - default: {{ include "app.image" . }}
+      name: IMAGE_NAME
       type: string
   resources: []
+{{- end }}

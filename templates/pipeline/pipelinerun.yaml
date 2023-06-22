@@ -1,3 +1,4 @@
+{{- if not .Values.pipelineDisabled }}
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
@@ -12,7 +13,7 @@ spec:
   serviceAccountName: pipeline
   timeout: 1h0m0s
   params:
-    - name: appversion
+    - name: IMAGE_TAG
       value: {{ .Chart.AppVersion }}
   workspaces:
     - name: source
@@ -24,3 +25,4 @@ spec:
     - configMap:
         name: {{ include "app.fullname" . }}-maven-settings
       name: maven-settings
+{{- end }}

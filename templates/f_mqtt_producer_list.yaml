@@ -1,4 +1,4 @@
-{{- if eq .Values.design "mqtt-producer" }}
+{{- if has "mqtt-producer-instance" .Values.feature }}
 apiVersion: v1
 kind: List
 metadata:
@@ -7,7 +7,7 @@ items:
 - apiVersion: broker.amq.io/v1beta1
   kind: ActiveMQArtemis
   metadata:
-    name: ex-aao
+    name: {{ coalesce .Values.amqBrokerInstanceNameOverride "ex-aao" }}
   spec:
     acceptors:
       - name: core-acceptor
@@ -46,7 +46,7 @@ items:
   kind: ServiceMonitor
   metadata:
     labels:
-      application: ex-aao
+      application: {{ coalesce .Values.amqBrokerInstanceNameOverride "ex-aao" }}
       component: service-monitor
     name: amq-broker
   spec:
@@ -57,6 +57,6 @@ items:
       scheme: http
     selector:
       matchLabels:
-        ActiveMQArtemis: ex-aao
-        application: ex-aao-app
+        ActiveMQArtemis: {{ coalesce .Values.amqBrokerInstanceNameOverride "ex-aao" }}
+        application: {{ coalesce .Values.amqBrokerInstanceNameOverride "ex-aao" }}-app
 {{- end }}

@@ -22,7 +22,7 @@ spec:
     spec:
       serviceAccountName: {{ .Release.Name }}-sa
       containers:
-        - image: "{{ include "app.fullname" . }}:{{ .Chart.AppVersion }}"
+        - image: "{{ include "app.image" . }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: IfNotPresent
           name: {{ include "app.fullname" . }}
           ports:
@@ -42,7 +42,7 @@ spec:
             - configMapRef:
                 name: {{ include "app.fullname" . }}-config
             - secretRef:
-                name: {{ include "app.fullname" . }}-broker-info
+                name: {{ coalesce .Values.amqBrokerInstanceNameOverride "ex-aao" }}-broker-info
           resources: 
             requests:
               cpu: "10m"

@@ -34,6 +34,14 @@ app.openshift.io/runtime-version: {{ .Chart.AppVersion }}
 {{- printf "https://github.com/gmodzelewski/octo-happiness-%s.git" .Values.design -}}
 {{- end -}}
 
+{{- define "app.image" }}
+{{- if .Values.imageOverride -}}
+{{- .Values.imageOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "quay.io/modzelewski/octo-happiness-%s" .Values.design -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "app.helmGit" }}
 {{- printf "https://github.com/gmodzelewski/octo-happiness.git" -}}
 {{- end -}}

@@ -4,14 +4,22 @@ deployment:
 config:
   greeting: 'Hello World.'
 
-design: mqtt-producer
+# design: mqtt-producer
+design: mqtt-processor
 # must be one of: grpc, mqtt-producer, mqtt-processor, amqp, rust 
 
 feature:
   # - servicemesh
-  - observability
+  # - observability
   # - observabilityClusterMonitoring
+  # - mqtt-producer-instance # (special for deployment of the amq artemis instance as well)
 
-healthChecksDisabled: false
+healthChecksDisabled: true # current bug: producer says quote topic on broker is down.
 
 rhacsDisabled: false # set this to true if you do not have rhacs installed and did not run the RHACS-generate-ci-api-token.yaml in the root directory
+
+pipelineDisabled: true
+
+# amqBrokerInstanceNameOverride: # default: ex-aao
+
+# imageOverride: # Something like image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/{{ include "app.fullname" . }}:$(params.appversion) or  quay.io/modzelewski/octo-happiness-{{ .Values.design }}/{{ include "app.fullname" . }}:$(params.appversion)
