@@ -88,10 +88,10 @@ spec:
   - imageChangeParams:
       automatic: true
       containerNames:
-      - {{ include "app.fullname" . }}
+      - octo-happiness-{{ .Values.design }}
       from:
         kind: ImageStreamTag
-        name: "{{ include "app.fullname" . }}:{{ .Chart.AppVersion }}"
+        name: "octo-happiness-{{ .Values.design }}:{{ .Chart.AppVersion }}"
     type: ImageChange
   strategy:
     type: Rolling
